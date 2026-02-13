@@ -23,3 +23,4 @@ jobs:
         ssh_private_key: ${{ secrets.SFTP_PRIVATE_KEY }}
         local_path: ./*
       remote_path: jollygood.co.jp/public_html/slide/
+            args: '-o ConnectTimeout=5'
