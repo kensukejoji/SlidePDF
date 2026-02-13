@@ -24,3 +24,4 @@ jobs:
         local_path: ./*
       remote_path: jollygood.co.jp/public_html/slide/
                   args: '-o ConnectTimeout=5'
+                            sftp_only: true
