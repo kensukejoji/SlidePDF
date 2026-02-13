@@ -1,0 +1,388 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>JOLLYGOOD スライドビューア</title>
+    <style>
+        /* Embed-specific styles */
+        :root {
+            --bg-primary: #0a0a0f;
+            --bg-secondary: #12121a;
+            --bg-glass: rgba(255, 255, 255, 0.08);
+            --text-primary: #ffffff;
+            --text-secondary: #a0a0b0;
+            --accent-primary: #6366f1;
+            --border-color: rgba(255, 255, 255, 0.1);
+            --radius-md: 12px;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            width: 100%;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .viewer-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.75rem 1rem;
+            background: var(--bg-glass);
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .viewer-title {
+            font-size: 1rem;
+            font-weight: 600;
+            flex: 1;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .action-btn {
+            width: 36px;
+            height: 36px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: var(--bg-glass);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            color: var(--text-primary);
+            font-size: 1rem;
+            cursor: pointer;
+            margin-left: 0.5rem;
+        }
+
+        .action-btn:hover {
+            background: var(--accent-primary);
+        }
+
+        .canvas-wrapper {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: auto;
+            padding: 1rem;
+        }
+
+        #pdfCanvas {
+            max-width: 100%;
+            max-height: 100%;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+        }
+
+        .controls {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 1rem;
+            padding: 0.75rem 1rem;
+            background: var(--bg-glass);
+            border-top: 1px solid var(--border-color);
+        }
+
+        .control-btn {
+            display: flex;
+            align-items: center;
+            gap: 0.25rem;
+            padding: 0.5rem 1rem;
+            background: var(--bg-glass);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            color: var(--text-primary);
+            font-size: 0.9rem;
+            cursor: pointer;
+        }
+
+        .control-btn:hover {
+            background: var(--accent-primary);
+        }
+
+        .control-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .page-indicator {
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+            min-width: 60px;
+            text-align: center;
+        }
+
+        .zoom-controls {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+        }
+
+        #zoomSlider {
+            width: 80px;
+            accent-color: var(--accent-primary);
+        }
+
+        .cta-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(10, 10, 15, 0.95);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 10;
+        }
+
+        .cta-overlay.visible {
+            display: flex;
+        }
+
+        .cta-content {
+            text-align: center;
+            padding: 2rem;
+            max-width: 500px;
+        }
+
+        .cta-content h3 {
+            font-size: 1.5rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .cta-content p {
+            color: var(--text-secondary);
+            margin-bottom: 1.5rem;
+        }
+
+        .cta-btn {
+            display: inline-block;
+            padding: 0.75rem 1.5rem;
+            margin: 0.25rem;
+            border-radius: 8px;
+            text-decoration: none;
+            font-weight: 600;
+        }
+
+        .cta-btn.primary {
+            background: linear-gradient(135deg, #6366f1, #8b5cf6);
+            color: white;
+        }
+
+        .cta-btn.secondary {
+            background: var(--bg-glass);
+            color: white;
+            border: 1px solid var(--border-color);
+        }
+
+        .contact-info {
+            margin-top: 1.5rem;
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+        }
+
+        .contact-info a {
+            color: var(--accent-primary);
+        }
+
+        @media (max-width: 600px) {
+            .zoom-controls {
+                display: none;
+            }
+        }
+    </style>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+</head>
+
+<body>
+    <div class="viewer-header">
+        <h1 id="viewerTitle" class="viewer-title">スライド</h1>
+        <button id="downloadBtn" class="action-btn" title="ダウンロード">⬇️</button>
+        <button id="fullscreenBtn" class="action-btn" title="全画面">⛶</button>
+    </div>
+
+    <div class="canvas-wrapper">
+        <canvas id="pdfCanvas"></canvas>
+    </div>
+
+    <div class="controls">
+        <button id="prevBtn" class="control-btn">◀ 前へ</button>
+        <span id="pageIndicator" class="page-indicator">1 / 1</span>
+        <button id="nextBtn" class="control-btn">次へ ▶</button>
+        <div class="zoom-controls">
+            <span>ズーム:</span>
+            <input type="range" id="zoomSlider" min="50" max="200" value="100">
+            <span id="zoomValue">100%</span>
+        </div>
+    </div>
+
+    <div id="ctaOverlay" class="cta-overlay">
+        <div class="cta-content">
+            <h3>🎉 ご覧いただきありがとうございます！</h3>
+            <p>VR医療教育にご興味がおありですか？</p>
+            <a href="https://jollygoodplus.com/" target="_blank" class="cta-btn primary">JOLLYGOOD+ サイトへ</a>
+            <a href="https://lp.jollygoodplus.com/member/" target="_blank" class="cta-btn secondary">無料アプリ</a>
+            <div class="contact-info">
+                <p><strong>ご相談・お問合せ</strong><br>
+                    <a href="mailto:jg_sales@jollygood.co.jp">jg_sales@jollygood.co.jp</a><br>
+                    <a href="https://jollygood.eeasy.jp/soudan" target="_blank">📅 面談予約</a>
+                </p>
+                <p style="margin-top:1rem"><strong>株式会社ジョリーグッド</strong><br>
+                    〒103-0006 東京都中央区日本橋富沢町10-13<br>
+                    TEL: 03-4455-2694</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+
+        // PDF data (same as main app)
+        const PDFS = {
+            'pdf1': 'A_竹＿大人女子＿補助金戦略.pdf',
+            'pdf2': 'B_竹コトー補助金_医療教育の突破口.pdf',
+            'pdf3': 'D_竹＿絶望の戦場.pdf',
+            'pdf4': 'F_竹＿冒険.pdf',
+            'pdf5': '人財消失事件の謎.pdf',
+            'pdf6': '全院教育DXパッケージ（松プラン）提案書.pdf',
+            'pdf7': '新人・研修医特化型_教育DXパッケージ「竹プラン」提案書.pdf',
+            'pdf8': '現場知を未来の標準へ.pdf',
+            'pdf9': '竹＿経験が自信を変える.pdf',
+            'pdf10': '部門特化型_教育DXパッケージ「梅プラン」提案書.pdf'
+        };
+
+        let pdfDoc = null;
+        let currentPage = 1;
+        let totalPages = 0;
+        let zoomLevel = 1;
+        let currentFilename = '';
+
+        const canvas = document.getElementById('pdfCanvas');
+        const ctx = canvas.getContext('2d');
+
+        async function loadPdf() {
+            const params = new URLSearchParams(window.location.search);
+            const pdfId = params.get('pdf');
+
+            if (!pdfId || !PDFS[pdfId]) {
+                document.getElementById('viewerTitle').textContent = 'PDFが見つかりません';
+                return;
+            }
+
+            currentFilename = PDFS[pdfId];
+            const title = currentFilename.replace('.pdf', '').replace(/_/g, ' ');
+            document.getElementById('viewerTitle').textContent = title;
+
+            try {
+                const loadingTask = pdfjsLib.getDocument('ComicPDF/' + currentFilename);
+                pdfDoc = await loadingTask.promise;
+                totalPages = pdfDoc.numPages;
+                currentPage = 1;
+                await renderPage(currentPage);
+                updateControls();
+            } catch (error) {
+                console.error('Error loading PDF:', error);
+            }
+        }
+
+        async function renderPage(pageNum) {
+            if (!pdfDoc) return;
+
+            const page = await pdfDoc.getPage(pageNum);
+            const viewport = page.getViewport({ scale: 1.5 * zoomLevel });
+
+            canvas.width = viewport.width;
+            canvas.height = viewport.height;
+
+            await page.render({ canvasContext: ctx, viewport }).promise;
+
+            document.getElementById('pageIndicator').textContent = pageNum + ' / ' + totalPages;
+
+            // Show CTA on last page
+            document.getElementById('ctaOverlay').classList.toggle('visible', pageNum === totalPages);
+        }
+
+        function updateControls() {
+            document.getElementById('prevBtn').disabled = currentPage <= 1;
+            document.getElementById('nextBtn').disabled = currentPage >= totalPages;
+        }
+
+        // Navigation
+        document.getElementById('prevBtn').addEventListener('click', async () => {
+            if (currentPage > 1) {
+                currentPage--;
+                await renderPage(currentPage);
+                updateControls();
+            }
+        });
+
+        document.getElementById('nextBtn').addEventListener('click', async () => {
+            if (currentPage < totalPages) {
+                currentPage++;
+                await renderPage(currentPage);
+                updateControls();
+            }
+        });
+
+        // Keyboard
+        document.addEventListener('keydown', async (e) => {
+            if (e.key === 'ArrowLeft' && currentPage > 1) {
+                currentPage--;
+                await renderPage(currentPage);
+                updateControls();
+            } else if ((e.key === 'ArrowRight' || e.key === ' ') && currentPage < totalPages) {
+                currentPage++;
+                await renderPage(currentPage);
+                updateControls();
+            }
+        });
+
+        // Zoom
+        document.getElementById('zoomSlider').addEventListener('input', async (e) => {
+            zoomLevel = e.target.value / 100;
+            document.getElementById('zoomValue').textContent = e.target.value + '%';
+            await renderPage(currentPage);
+        });
+
+        // Download
+        document.getElementById('downloadBtn').addEventListener('click', () => {
+            if (currentFilename) {
+                const link = document.createElement('a');
+                link.href = 'ComicPDF/' + currentFilename;
+                link.download = currentFilename;
+                link.click();
+            }
+        });
+
+        // Fullscreen
+        document.getElementById('fullscreenBtn').addEventListener('click', () => {
+            if (document.fullscreenElement) {
+                document.exitFullscreen();
+            } else {
+                document.body.requestFullscreen();
+            }
+        });
+
+        // Init
+        loadPdf();
+    </script>
+</body>
+
+</html>
