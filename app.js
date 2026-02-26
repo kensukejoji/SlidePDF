@@ -316,7 +316,9 @@ async function renderLibrary() {
 
     // Auto-generate AI content for PDFs without descriptions (Admins only)
     if (isAdminAllowed()) {
-        autoGenerateForNewPdfs();
+        // Auto-generation disabled to prevent API rate limits (429 errors)
+        // AI content is generated manually from admin panel
+        // autoGenerateForNewPdfs();
     }
 
     // Update tag cloud based on current PDF data
@@ -468,8 +470,8 @@ document.getElementById('clearSearchBtn')?.addEventListener('click', () => {
 
 async function autoGenerateForNewPdfs() {
     const pdfs = await getPdfData();
-    const MAX_AUTO_GENERATE = 5; // Process max 5 PDFs per page load
-    const DELAY_MS = 3000; // 3 second delay between API calls
+    const MAX_AUTO_GENERATE = 3; // Process max 3 PDFs per batch
+    const DELAY_MS = 5000; // 5 second delay between API calls
 
     let processed = 0;
 
