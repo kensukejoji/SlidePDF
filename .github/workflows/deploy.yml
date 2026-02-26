@@ -14,6 +14,14 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v3
 
+    - name: Generate config.php from secrets
+      run: |
+        cat << 'EOF' > config.php
+        <?php
+        $GEMINI_API_KEY = '${{ secrets.GEMINI_API_KEY }}';
+        ?>
+        EOF
+
     - name: SFTP Deploy
       uses: appleboy/scp-action@v0.1.7
       with:
