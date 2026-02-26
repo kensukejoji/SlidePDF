@@ -1,0 +1,15 @@
+# Sensitive config (API keys)
+config.php
+
+# Dependencies
+node_modules/
+
+# OS files
+.DS_Store
+
+# Backups
+data/backups/
+
+# Deploy archive
+SlidePDF_deploy.zip
+SlidePDF_deploy/

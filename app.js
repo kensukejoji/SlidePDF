@@ -129,8 +129,8 @@ let zoomLevel = 1;
 const GOOGLE_CLIENT_ID = '1995264722-fs8s2b5jpc8t0d3lpu0e8gpdogjipjrc.apps.googleusercontent.com';
 const ALLOWED_DOMAIN = 'jollygood.co.jp';
 
-// Gemini AI API Key
-const GEMINI_API_KEY = 'AIzaSyAQzUyrYYyoTWrQmLuy7fnZpxtFJqmzJzw';
+// Gemini AI is accessed via server-side proxy (gemini-proxy.php)
+// API key is stored securely in config.php on the server
 
 let currentUser = null;
 
@@ -921,7 +921,7 @@ async function generateAiSummaryFromImage(imageBase64, pdfTitle) {
 要約（1文、日本語）:`;
 
     try {
-        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_API_KEY}`, {
+        const response = await fetch('gemini-proxy.php', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
@@ -970,7 +970,7 @@ ${pdfText.substring(0, 2000)}
 要約（1文、日本語）:`;
 
     try {
-        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_API_KEY}`, {
+        const response = await fetch('gemini-proxy.php', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
@@ -1045,7 +1045,7 @@ async function autoGenerateTitle(pdf) {
 タイトル（25文字以内）:`;
 
     try {
-        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_API_KEY}`, {
+        const response = await fetch('gemini-proxy.php', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
