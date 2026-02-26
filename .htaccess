@@ -14,3 +14,9 @@
     Header set X-Content-Type-Options "nosniff"
     Header set X-XSS-Protection "1; mode=block"
 </IfModule>
+
+# Block direct access to config.php
+<Files "config.php">
+    Order Allow,Deny
+    Deny from all
+</Files>
