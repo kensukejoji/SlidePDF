@@ -1644,7 +1644,7 @@ async function loadOgpPageSelector(pdf) {
 document.getElementById('generateAiSummaryBtn')?.addEventListener('click', async () => {
     if (!editingPdfId) return;
 
-    const pdf = getPdfById(editingPdfId);
+    const pdf = await getPdfById(editingPdfId);
     if (!pdf) return;
 
     const btn = document.getElementById('generateAiSummaryBtn');
