@@ -14,6 +14,12 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v3
 
+    - name: Create config.php
+      run: |
+        echo "<?php" > config.php
+        echo "\$GEMINI_API_KEY = '${{ secrets.GEMINI_API_KEY }}';" >> config.php
+        echo "?>" >> config.php
+
     - name: SFTP Deploy
       uses: wlixcc/SFTP-Deploy-Action@v1.2.4
       with:
