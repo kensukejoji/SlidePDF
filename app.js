@@ -929,12 +929,12 @@ async function capturePdfPageAsImage(pdf, pageNum = 1) {
 
 async function generateAiSummaryFromImage(imageBase64, pdfTitle) {
     const prompt = `この画像はプレゼンテーションスライドです。
-このスライドが「誰向けの」「何についての」資料かを、1文で超簡潔に要約してください。
-「このスライドは、」で始めず、「するものです」ではなく「します。」で終わる短文で。
+このスライドが「誰向けの」「何についての」資料かを、3行程度の文章で分かりやすく要約してください。
+箇条書きは使わず、自然な文章で説明してください。
 
 タイトル: ${pdfTitle}
 
-要約（1文、日本語）:`;
+要約（3行程度、日本語）:`;
 
     try {
         const response = await fetch('gemini-proxy.php', {
@@ -975,15 +975,15 @@ async function generateAiSummaryFromImage(imageBase64, pdfTitle) {
 
 async function generateAiSummaryFromText(pdfText, pdfTitle) {
     const prompt = `以下はプレゼンテーションスライドから抽出したテキストです。
-このスライドが「誰向けの」「何についての」資料かを、1文で超簡潔に要約してください。
-「このスライドは、」で始めず、「するものです」ではなく「します。」で終わる短文で。
+このスライドが「誰向けの」「何についての」資料かを、3行程度の文章で分かりやすく要約してください。
+箇条書きは使わず、自然な文章で説明してください。
 
 タイトル: ${pdfTitle}
 
 抽出テキスト:
 ${pdfText.substring(0, 2000)}
 
-要約（1文、日本語）:`;
+要約（3行程度、日本語）:`;
 
     try {
         const response = await fetch('gemini-proxy.php', {
