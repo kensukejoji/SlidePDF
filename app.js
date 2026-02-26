@@ -929,12 +929,12 @@ async function capturePdfPageAsImage(pdf, pageNum = 1) {
 
 async function generateAiSummaryFromImage(imageBase64, pdfTitle) {
     const prompt = `この画像はプレゼンテーションスライドです。
-このスライドが「誰向けの」「何についての」資料かを、3行程度の文章で分かりやすく要約してください。
+このスライドが「誰向けの」「何についての」資料かを、100文字〜300文字程度の文章で分かりやすく要約・説明してください。
 箇条書きは使わず、自然な文章で説明してください。
 
 タイトル: ${pdfTitle}
 
-要約（3行程度、日本語）:`;
+要約（100文字〜300文字、日本語）:`;
 
     try {
         const response = await fetch('gemini-proxy.php', {
@@ -956,7 +956,7 @@ async function generateAiSummaryFromImage(imageBase64, pdfTitle) {
                 }],
                 generationConfig: {
                     temperature: 0.3,
-                    maxOutputTokens: 150
+                    maxOutputTokens: 400
                 }
             })
         });
@@ -975,7 +975,7 @@ async function generateAiSummaryFromImage(imageBase64, pdfTitle) {
 
 async function generateAiSummaryFromText(pdfText, pdfTitle) {
     const prompt = `以下はプレゼンテーションスライドから抽出したテキストです。
-このスライドが「誰向けの」「何についての」資料かを、3行程度の文章で分かりやすく要約してください。
+このスライドが「誰向けの」「何についての」資料かを、100文字〜300文字程度の文章で分かりやすく要約・説明してください。
 箇条書きは使わず、自然な文章で説明してください。
 
 タイトル: ${pdfTitle}
@@ -983,7 +983,7 @@ async function generateAiSummaryFromText(pdfText, pdfTitle) {
 抽出テキスト:
 ${pdfText.substring(0, 2000)}
 
-要約（3行程度、日本語）:`;
+要約（100文字〜300文字、日本語）:`;
 
     try {
         const response = await fetch('gemini-proxy.php', {
@@ -997,7 +997,7 @@ ${pdfText.substring(0, 2000)}
                 }],
                 generationConfig: {
                     temperature: 0.3,
-                    maxOutputTokens: 150
+                    maxOutputTokens: 400
                 }
             })
         });
