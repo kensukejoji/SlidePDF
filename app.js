@@ -1056,7 +1056,7 @@ async function autoGenerateTitle(pdf) {
 このスライドの内容を的確に表す、魅力的で惹きつけられるタイトルを1つだけ生成してください。
 - 30文字程度で、具体的で興味を引くキャッチコピーのようなタイトル
 - 「〜について」「〜の資料」などの退屈な表現は避ける
-- 記号等を使って見栄え良くしても良い
+- マークダウン記法（**など）は一切使わない
 
 タイトル（魅力的で分かりやすいもの）:`;
 
@@ -1079,6 +1079,9 @@ async function autoGenerateTitle(pdf) {
 
         const data = await response.json();
         let title = data.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || null;
+        if (title) {
+            title = title.replace(/\*/g, ''); // Markdownの**などを除去
+        }
 
         // 35文字以内に切り詰め
         if (title && title.length > 35) {
