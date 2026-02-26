@@ -956,7 +956,7 @@ async function generateAiSummaryFromImage(imageBase64, pdfTitle) {
                 }],
                 generationConfig: {
                     temperature: 0.3,
-                    maxOutputTokens: 400
+                    maxOutputTokens: 800
                 }
             })
         });
@@ -997,7 +997,7 @@ ${pdfText.substring(0, 2000)}
                 }],
                 generationConfig: {
                     temperature: 0.3,
-                    maxOutputTokens: 400
+                    maxOutputTokens: 800
                 }
             })
         });
@@ -1071,7 +1071,7 @@ async function autoGenerateTitle(pdf) {
                         { inline_data: { mime_type: 'image/jpeg', data: imageBase64 } }
                     ]
                 }],
-                generationConfig: { temperature: 0.5, maxOutputTokens: 50 }
+                generationConfig: { temperature: 0.5, maxOutputTokens: 150 }
             })
         });
 
@@ -1080,9 +1080,9 @@ async function autoGenerateTitle(pdf) {
         const data = await response.json();
         let title = data.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || null;
 
-        // 25文字以内に切り詰め
-        if (title && title.length > 25) {
-            title = title.substring(0, 25);
+        // 35文字以内に切り詰め
+        if (title && title.length > 35) {
+            title = title.substring(0, 35) + '...';
         }
 
         if (title) {
