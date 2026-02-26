@@ -1984,6 +1984,98 @@ document.getElementById('generateOgpBtn')?.addEventListener('click', async () =>
     showToast('全OGP画像の生成が完了しました！ogp/フォルダにアップロードしてください。');
 });
 
+// ========================================
+// Batch AI Generation
+// ========================================
+
+document.getElementById('batchAiGenerateBtn')?.addEventListener('click', async () => {
+    const pdfs = await getPdfData();
+    const btn = document.getElementById('batchAiGenerateBtn');
+    const originalText = btn.textContent;
+
+    // Using the same progress bar as OGP for simplicity
+    const progress = document.getElementById('uploadProgress');
+    const progressText = document.getElementById('progressText');
+    const progressFill = document.getElementById('progressFill');
+
+    // Filter PDFs that need generating
+    const needsGeneration = pdfs.filter(pdf =>
+        !pdf.title || pdf.title === pdf.filename || !pdf.description || pdf.description === '-'
+    );
+
+    if (needsGeneration.length === 0) {
+        showToast('すでに全スライドのAI生成が完了しています。');
+        return;
+    }
+
+    if (!confirm(`未生成のスライド ${needsGeneration.length} 件に対してAI自動生成を開始しますか？（数分かかる場合があります）`)) {
+        return;
+    }
+
+    btn.disabled = true;
+    btn.textContent = '生成中...';
+    progress.style.display = 'block';
+
+    let successCount = 0;
+
+    for (let i = 0; i < needsGeneration.length; i++) {
+        const targetPdf = needsGeneration[i];
+        const percent = Math.round((i / needsGeneration.length) * 100);
+
+        progressText.textContent = `${i + 1}/${needsGeneration.length} (${percent}%)`;
+        progressFill.style.width = `${percent}%`;
+
+        let updated = false;
+        let newTitle = targetPdf.title;
+        let newDescription = targetPdf.description;
+
+        // Generate Title if missing or default
+        if (!newTitle || newTitle === targetPdf.filename) {
+            const title = await autoGenerateTitle(targetPdf);
+            if (title) {
+                newTitle = title;
+                updated = true;
+            }
+        }
+
+        // Generate Description if missing or default
+        if (!newDescription || newDescription === '-') {
+            const desc = await autoGenerateSummary(targetPdf);
+            if (desc) {
+                newDescription = desc;
+                updated = true;
+            }
+        }
+
+        if (updated) {
+            await updatePdf(targetPdf.id, {
+                title: newTitle,
+                description: newDescription
+            });
+            successCount++;
+        }
+
+        // AI API Rate Limiting - Wait realistically to avoid 429
+        if (i < needsGeneration.length - 1) {
+            await new Promise(resolve => setTimeout(resolve, 3000));
+        }
+    }
+
+    progressText.textContent = `100%`;
+    progressFill.style.width = `100%`;
+
+    // Finish UI updates
+    setTimeout(() => {
+        progress.style.display = 'none';
+        btn.disabled = false;
+        btn.textContent = originalText;
+        showToast(`${successCount}件のAI生成と保存が完了しました！`);
+
+        // Refresh the list view in the admin modal
+        renderAdminList();
+    }, 1000);
+});
+
 async function generateAndDownloadOgpImage(pdf) {
     const pdfPath = `ComicPDF/${pdf.filename}`;
     const ogpPage = pdf.ogpPage || 1;
