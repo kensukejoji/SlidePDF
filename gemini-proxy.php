@@ -73,6 +73,7 @@ if ($curlError) {
 }
 
 // Forward the response as-is
+file_put_contents(__DIR__ . '/gemini_debug.log', date('Y-m-d H:i:s') . "\nREQUEST:\n" . $input . "\nRESPONSE:\n" . $response . "\n\n", FILE_APPEND);
 http_response_code($httpCode);
 echo $response;
 ?>
