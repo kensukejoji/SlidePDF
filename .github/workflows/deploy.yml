@@ -30,4 +30,10 @@ jobs:
         local_path: ./*
         remote_path: jollygood.co.jp/public_html/slide/
         args: '-o ConnectTimeout=5'
+        sftpArgs: '-o ConnectTimeout=5'
         sftp_only: true
+        exclude: |
+          **/.git/**
+          **/node_modules/**
+          **/SlidePDF_deploy/**
+          SlidePDF_deploy.zip
