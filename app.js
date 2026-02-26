@@ -956,7 +956,7 @@ async function generateAiSummaryFromImage(imageBase64, pdfTitle) {
                 }],
                 generationConfig: {
                     temperature: 0.3,
-                    maxOutputTokens: 800
+                    maxOutputTokens: 4096
                 }
             })
         });
@@ -997,7 +997,7 @@ ${pdfText.substring(0, 2000)}
                 }],
                 generationConfig: {
                     temperature: 0.3,
-                    maxOutputTokens: 800
+                    maxOutputTokens: 4096
                 }
             })
         });
@@ -1071,7 +1071,7 @@ async function autoGenerateTitle(pdf) {
                         { inline_data: { mime_type: 'image/jpeg', data: imageBase64 } }
                     ]
                 }],
-                generationConfig: { temperature: 0.5, maxOutputTokens: 150 }
+                generationConfig: { temperature: 0.5, maxOutputTokens: 1024 }
             })
         });
 
