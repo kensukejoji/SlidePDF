@@ -468,8 +468,14 @@ document.getElementById('clearSearchBtn')?.addEventListener('click', () => {
 
 async function autoGenerateForNewPdfs() {
     const pdfs = await getPdfData();
+    const MAX_AUTO_GENERATE = 5; // Process max 5 PDFs per page load
+    const DELAY_MS = 3000; // 3 second delay between API calls
+
+    let processed = 0;
 
     for (const pdf of pdfs) {
+        if (processed >= MAX_AUTO_GENERATE) break;
+
         // Skip if already has description
         if (pdf.description && pdf.description.trim().length > 0) continue;
 
@@ -491,8 +497,16 @@ async function autoGenerateForNewPdfs() {
             console.error('Auto-generation failed:', error);
             await updatePdf(pdf.id, { aiGenerating: false });
         }
+
+        processed++;
+
+        // Rate limiting: wait between API calls
+        if (processed < MAX_AUTO_GENERATE) {
+            await new Promise(resolve => setTimeout(resolve, DELAY_MS));
+        }
     }
 }
+
 
 async function createPdfCard(pdf) {
     const card = document.createElement('div');
