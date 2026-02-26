@@ -1738,7 +1738,7 @@ editModal.querySelector('.modal-backdrop').addEventListener('click', () => {
 document.getElementById('downloadOgpBtn')?.addEventListener('click', async () => {
     if (!editingPdfId) return;
 
-    const pdf = getPdfById(editingPdfId);
+    const pdf = await getPdfById(editingPdfId);
     if (!pdf) return;
 
     const selectedOgpThumb = document.querySelector('.ogp-page-thumb.selected');
