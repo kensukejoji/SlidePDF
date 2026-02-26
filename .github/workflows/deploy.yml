@@ -21,19 +21,13 @@ jobs:
         echo "?>" >> config.php
 
     - name: SFTP Deploy
-      uses: wlixcc/SFTP-Deploy-Action@v1.2.4
+      uses: appleboy/scp-action@v0.1.7
       with:
+        host: ${{ secrets.SFTP_SERVER }}
         username: ${{ secrets.SFTP_USERNAME }}
-        server: ${{ secrets.SFTP_SERVER }}
         port: ${{ secrets.SFTP_PORT }}
-        ssh_private_key: ${{ secrets.SFTP_PRIVATE_KEY }}
-        local_path: ./*
-        remote_path: jollygood.co.jp/public_html/slide/
-        args: '-o ConnectTimeout=5'
-        sftpArgs: '-o ConnectTimeout=5'
-        sftp_only: true
-        exclude: |
-          **/.git/**
-          **/node_modules/**
-          **/SlidePDF_deploy/**
-          SlidePDF_deploy.zip
+        key: ${{ secrets.SFTP_PRIVATE_KEY }}
+        source: "."
+        target: "jollygood.co.jp/public_html/slide/"
+        rm: false
+        exclude: "node_modules,SlidePDF_deploy,SlidePDF_deploy.zip,.git"
