@@ -1154,6 +1154,80 @@ SNS投稿文:`;
     return null;
 }
 
+async function autoGenerateMissingFields(pdf, needsTitle, needsDesc, needsSns) {
+    if (!needsTitle && !needsDesc && !needsSns) return {};
+
+    showToast(`AIによるコンテンツ一括生成中...`);
+
+    const imageBase64 = await capturePdfPageAsImage(pdf, 1);
+    const pdfText = await extractPdfText(pdf, 3);
+
+    if (!imageBase64 && !pdfText) {
+        return {};
+    }
+
+    const prompt = `あなたはプロのコンテンツクリエイターです。
+以下のプレゼンテーションスライドの画像とテキストの内容を分析し、以下のフィールドのうち要求されたものだけを生成してください。
+【必ず有効なJSONオブジェクトとしてのみ出力してください。マークダウンや説明は一切含めないでください】
+
+生成フィールドの要件:
+${needsTitle ? `- "title": 30文字程度で、具体的で興味を引くキャッチコピーのようなタイトル。マークダウンは使用禁止。` : ''}
+${needsDesc ? `- "description": スライドが「誰向けの」「何についての」資料かを、100文字〜300文字程度の自然な文章で要約・説明。` : ''}
+${needsSns ? `- "snsText": XやFacebookでシェアしたくなる140文字程度のフックのある文章。「タイトル」と「要約」を考慮し、ハッシュタグ（例: #VR など）を2〜3個追加。文末に必ずURL「https://jollygood.co.jp/slide/#pdf=${pdf.id}」を含める。マークダウン禁止。` : ''}
+
+スライドから抽出したテキスト情報:
+${pdfText ? pdfText.substring(0, 1000) : 'なし'}
+
+出力フォーマット例:
+{
+    ${needsTitle ? '"title": "生成したタイトル",' : ''}
+    ${needsDesc ? '"description": "生成した要約文",' : ''}
+    ${needsSns ? '"snsText": "生成したSNS投稿文..."' : ''}
+}`;
+
+    const parts = [{ text: prompt }];
+    if (imageBase64) {
+        parts.push({ inline_data: { mime_type: 'image/jpeg', data: imageBase64 } });
+    }
+
+    try {
+        const response = await fetch('gemini-proxy.php', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                contents: [{ parts: parts }],
+                generationConfig: {
+                    temperature: 0.7,
+                    maxOutputTokens: 2048,
+                    responseMimeType: "application/json"
+                }
+            })
+        });
+
+        if (!response.ok) throw new Error(`API error: ${response.status}`);
+
+        const data = await response.json();
+        const responseText = data.candidates?.[0]?.content?.parts?.[0]?.text?.trim();
+
+        if (responseText) {
+            const parsed = JSON.parse(responseText);
+            // Cleanup markdown if any leaked
+            if (parsed.title) parsed.title = parsed.title.replace(/\*/g, '');
+            if (parsed.snsText) parsed.snsText = parsed.snsText.replace(/\*/g, '');
+            // Limit title
+            if (parsed.title && parsed.title.length > 35) parsed.title = parsed.title.substring(0, 35) + '...';
+
+            showToast('AIによる一括生成が完了しました！');
+            return parsed;
+        }
+    } catch (error) {
+        console.error('Error in batch missing field generation:', error);
+    }
+
+    showToast('AI一括生成に失敗しました');
+    return {};
+}
+
 function getAnonymousUserId() {
     let anonymousId = localStorage.getItem('anonymousUserId');
     if (!anonymousId) {
@@ -2134,30 +2208,26 @@ document.getElementById('batchAiGenerateBtn')?.addEventListener('click', async (
         let updated = false;
         let newTitle = targetPdf.title;
         let newDescription = targetPdf.description;
+        let newSnsText = targetPdf.notes;
 
-        // Generate Title if missing, default, or contains underscores
-        if (!newTitle || newTitle === targetPdf.filename || newTitle.includes('_') || newTitle.includes('＿')) {
-            const title = await autoGenerateTitle(targetPdf);
-            if (title) {
-                newTitle = title;
+        const needsTitle = !newTitle || newTitle === targetPdf.filename || newTitle.includes('_') || newTitle.includes('＿');
+        const needsDesc = !newDescription || newDescription === '-';
+        const needsSns = !newSnsText || newSnsText === '-' || newSnsText === '';
+
+        // Generate all missing fields in a single API call
+        if (needsTitle || needsDesc || needsSns) {
+            const generated = await autoGenerateMissingFields(targetPdf, needsTitle, needsDesc, needsSns);
+
+            if (generated.title) {
+                newTitle = generated.title;
                 updated = true;
             }
-        }
-
-        // Generate Description if missing or default
-        if (!newDescription || newDescription === '-') {
-            const desc = await autoGenerateSummary(targetPdf);
-            if (desc) {
-                newDescription = desc;
+            if (generated.description) {
+                newDescription = generated.description;
                 updated = true;
             }
-        }
-
-        // Generate SNS Text if missing or default, but only if we have title & desc now
-        if ((!targetPdf.notes || targetPdf.notes === '-' || targetPdf.notes === '') && newTitle && newDescription) {
-            const snsText = await autoGenerateSnsText(newTitle, newDescription, targetPdf.id);
-            if (snsText) {
-                targetPdf.notes = snsText; // Store temporarily
+            if (generated.snsText) {
+                newSnsText = generated.snsText;
                 updated = true;
             }
         }
@@ -2166,14 +2236,14 @@ document.getElementById('batchAiGenerateBtn')?.addEventListener('click', async (
             await updatePdf(targetPdf.id, {
                 title: newTitle,
                 description: newDescription,
-                notes: targetPdf.notes // Includes the newly generated SNS text
+                notes: newSnsText
             });
             successCount++;
         }
 
         // AI API Rate Limiting - Wait realistically to avoid 429
         if (i < needsGeneration.length - 1) {
-            await new Promise(resolve => setTimeout(resolve, 3000));
+            await new Promise(resolve => setTimeout(resolve, 2000));
         }
     }
 
