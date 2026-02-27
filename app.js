@@ -1157,8 +1157,6 @@ SNS投稿文:`;
 async function autoGenerateMissingFields(pdf, needsTitle, needsDesc, needsSns) {
     if (!needsTitle && !needsDesc && !needsSns) return {};
 
-    showToast(`AIによるコンテンツ一括生成中...`);
-
     const imageBase64 = await capturePdfPageAsImage(pdf, 1);
     const pdfText = await extractPdfText(pdf, 3);
 
@@ -1210,24 +1208,31 @@ ${pdfText ? pdfText.substring(0, 1000) : 'なし'}
         const responseText = data.candidates?.[0]?.content?.parts?.[0]?.text?.trim();
 
         if (responseText) {
-            // Strip markdown block formatting if Gemini returns it (e.g. ```json \n ... \n```)
-            const cleanJsonText = responseText.replace(/^```json\s*/, '').replace(/\s*```$/, '');
-            const parsed = JSON.parse(cleanJsonText);
+            let cleanJsonText = responseText;
+            // Extract only the JSON object part just in case there is surrounding text
+            const match = responseText.match(/\{[\s\S]*\}/);
+            if (match) {
+                cleanJsonText = match[0];
+            }
 
-            // Cleanup markdown if any leaked
-            if (parsed.title) parsed.title = parsed.title.replace(/\*/g, '');
-            if (parsed.snsText) parsed.snsText = parsed.snsText.replace(/\*/g, '');
-            // Limit title
-            if (parsed.title && parsed.title.length > 35) parsed.title = parsed.title.substring(0, 35) + '...';
+            try {
+                const parsed = JSON.parse(cleanJsonText);
 
-            showToast('AIによる一括生成が完了しました！');
-            return parsed;
+                // Cleanup markdown if any leaked
+                if (parsed.title) parsed.title = parsed.title.replace(/\*/g, '');
+                if (parsed.snsText) parsed.snsText = parsed.snsText.replace(/\*/g, '');
+                // Limit title
+                if (parsed.title && parsed.title.length > 35) parsed.title = parsed.title.substring(0, 35) + '...';
+
+                return parsed;
+            } catch (e) {
+                console.error("JSON parse error:", e, "\nRaw output:", responseText);
+            }
         }
     } catch (error) {
         console.error('Error in batch missing field generation:', error);
     }
 
-    showToast('AI一括生成に失敗しました');
     return {};
 }
 
@@ -2205,7 +2210,7 @@ document.getElementById('batchAiGenerateBtn')?.addEventListener('click', async (
         const targetPdf = needsGeneration[i];
         const percent = Math.round((i / needsGeneration.length) * 100);
 
-        progressText.textContent = `${i + 1}/${needsGeneration.length} (${percent}%)`;
+        progressText.textContent = `${i + 1}/${needsGeneration.length} (${percent}%) - ${targetPdf.filename} ...`;
         progressFill.style.width = `${percent}%`;
 
         let updated = false;
