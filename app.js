@@ -1746,11 +1746,33 @@ async function renderAdminList() {
 
 async function deletePdf(id) {
     let pdfs = await getPdfData();
+    const pdfToDelete = pdfs.find(p => p.id === id);
+
+    if (pdfToDelete) {
+        // Send request to server to permanently delete physical files
+        try {
+            const deleteRes = await fetch('delete-pdf.php', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    id: id,
+                    filename: pdfToDelete.filename
+                })
+            });
+            if (!deleteRes.ok) {
+                console.error("Failed to delete physical files", await deleteRes.text());
+            }
+        } catch (e) {
+            console.error("Error calling delete-pdf.php", e);
+        }
+    }
+
+    // Remove from array and save data.json
     pdfs = pdfs.filter(p => p.id !== id);
     await savePdfData(pdfs);
     renderAdminList();
     renderLibrary();
-    showToast('PDFを削除しました');
+    showToast('PDFを完全に削除しました');
 }
 
 // ========================================
