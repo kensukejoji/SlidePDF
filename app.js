@@ -2047,6 +2047,16 @@ document.addEventListener('DOMContentLoaded', () => {
     renderLibrary();
 
     handleUrlHash();
+
+    // Display App Version in Footer
+    const scriptTag = document.querySelector('script[src^="app.js"]');
+    const versionDisplay = document.getElementById('appVersionDisplay');
+    if (scriptTag && versionDisplay) {
+        const match = scriptTag.src.match(/v=([0-9]+)/);
+        if (match) {
+            versionDisplay.textContent = `v${match[1]}`;
+        }
+    }
 });
 
 // ========================================
@@ -2092,8 +2102,9 @@ document.getElementById('batchAiGenerateBtn')?.addEventListener('click', async (
     const progressFill = document.getElementById('progressFill');
 
     // Filter PDFs that need generating (title, description, or notes)
+    // Titles containing _ or ＿ are treated as auto-generated filenames that need proper generation
     const needsGeneration = pdfs.filter(pdf =>
-        !pdf.title || pdf.title === pdf.filename ||
+        !pdf.title || pdf.title === pdf.filename || pdf.title.includes('_') || pdf.title.includes('＿') ||
         !pdf.description || pdf.description === '-' ||
         !pdf.notes || pdf.notes === '-' || pdf.notes === ''
     );
@@ -2124,8 +2135,8 @@ document.getElementById('batchAiGenerateBtn')?.addEventListener('click', async (
         let newTitle = targetPdf.title;
         let newDescription = targetPdf.description;
 
-        // Generate Title if missing or default
-        if (!newTitle || newTitle === targetPdf.filename) {
+        // Generate Title if missing, default, or contains underscores
+        if (!newTitle || newTitle === targetPdf.filename || newTitle.includes('_') || newTitle.includes('＿')) {
             const title = await autoGenerateTitle(targetPdf);
             if (title) {
                 newTitle = title;
