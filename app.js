@@ -1210,7 +1210,10 @@ ${pdfText ? pdfText.substring(0, 1000) : 'なし'}
         const responseText = data.candidates?.[0]?.content?.parts?.[0]?.text?.trim();
 
         if (responseText) {
-            const parsed = JSON.parse(responseText);
+            // Strip markdown block formatting if Gemini returns it (e.g. ```json \n ... \n```)
+            const cleanJsonText = responseText.replace(/^```json\s*/, '').replace(/\s*```$/, '');
+            const parsed = JSON.parse(cleanJsonText);
+
             // Cleanup markdown if any leaked
             if (parsed.title) parsed.title = parsed.title.replace(/\*/g, '');
             if (parsed.snsText) parsed.snsText = parsed.snsText.replace(/\*/g, '');
