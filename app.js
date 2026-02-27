@@ -1100,6 +1100,60 @@ async function autoGenerateTitle(pdf) {
     return null;
 }
 
+async function autoGenerateSnsText(title, description, pdfId) {
+    showToast('SNS投稿文をAIで生成中...');
+
+    if (!title || !description || description === '-') {
+        showToast('SNS投稿文の生成には、事前に「タイトル」と「概要文」が必要です');
+        return null;
+    }
+
+    const prompt = `あなたはSNSマーケティングのプロフェッショナルです。
+以下のプレゼンテーションスライドの「タイトル」と「概要文」をもとに、X（旧Twitter）やFacebookでシェアしたくなるような魅力的な短文を作成してください。
+
+【条件】
+- 140文字程度のコンパクトでキャッチーな文章にする
+- 読者が「思わず読みたくなる」「役に立ちそう」と感じるフックを含める
+- スライドの内容に関連するハッシュタグ（例: #VR #医療教育 など）を2〜3個追加する
+- 文章の最後に必ず、以下のURLをそのままの形で含めること
+URL: https://jollygood.co.jp/slide/#pdf=${pdfId}
+- マークダウン記法（**など）は使わないこと
+
+スライド タイトル: ${title}
+スライド 概要文: ${description}
+
+SNS投稿文:`;
+
+    try {
+        const response = await fetch('gemini-proxy.php', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                contents: [{
+                    parts: [{ text: prompt }]
+                }],
+                generationConfig: { temperature: 0.7, maxOutputTokens: 1024 }
+            })
+        });
+
+        if (!response.ok) throw new Error(`API error: ${response.status}`);
+
+        const data = await response.json();
+        let snsText = data.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || null;
+
+        if (snsText) {
+            snsText = snsText.replace(/\*/g, ''); // Remove stray asterisk markdown
+            showToast('SNS投稿文を生成しました！');
+            return snsText;
+        }
+    } catch (error) {
+        console.error('Error generating AI SNS Text:', error);
+    }
+
+    showToast('SNS投稿文の生成に失敗しました');
+    return null;
+}
+
 function getAnonymousUserId() {
     let anonymousId = localStorage.getItem('anonymousUserId');
     if (!anonymousId) {
@@ -1722,6 +1776,45 @@ document.getElementById('generateAiTitleBtn')?.addEventListener('click', async (
     }
 });
 
+// SNS投稿文 (Notes) のAI生成
+document.getElementById('generateAiSnsBtn')?.addEventListener('click', async () => {
+    if (!editingPdfId) return;
+
+    const title = document.getElementById('editTitle').value.trim();
+    const description = document.getElementById('editDescription').value.trim();
+
+    if (!title || !description) {
+        showToast('先に「タイトル」と「概要文」を入力するか生成してください');
+        return;
+    }
+
+    const btn = document.getElementById('generateAiSnsBtn');
+    const originalText = btn.textContent;
+
+    btn.classList.add('loading');
+    btn.textContent = '生成中...';
+
+    const startTime = Date.now();
+    const updateTimer = setInterval(() => {
+        const elapsed = Math.floor((Date.now() - startTime) / 1000);
+        btn.textContent = `生成中... ${elapsed}秒`;
+    }, 1000);
+
+    try {
+        const snsText = await autoGenerateSnsText(title, description, editingPdfId);
+        if (snsText) {
+            document.getElementById('editNotes').value = snsText;
+        }
+    } catch (error) {
+        console.error('SNS Text generation failed:', error);
+        showToast('SNS投稿文の生成中にエラーが発生しました');
+    } finally {
+        clearInterval(updateTimer);
+        btn.classList.remove('loading');
+        btn.textContent = originalText;
+    }
+});
+
 document.getElementById('closeEditBtn').addEventListener('click', () => {
     editModal.classList.remove('active');
     editingPdfId = null;
@@ -1998,9 +2091,11 @@ document.getElementById('batchAiGenerateBtn')?.addEventListener('click', async (
     const progressText = document.getElementById('progressText');
     const progressFill = document.getElementById('progressFill');
 
-    // Filter PDFs that need generating
+    // Filter PDFs that need generating (title, description, or notes)
     const needsGeneration = pdfs.filter(pdf =>
-        !pdf.title || pdf.title === pdf.filename || !pdf.description || pdf.description === '-'
+        !pdf.title || pdf.title === pdf.filename ||
+        !pdf.description || pdf.description === '-' ||
+        !pdf.notes || pdf.notes === '-' || pdf.notes === ''
     );
 
     if (needsGeneration.length === 0) {
@@ -2047,10 +2142,20 @@ document.getElementById('batchAiGenerateBtn')?.addEventListener('click', async (
             }
         }
 
+        // Generate SNS Text if missing or default, but only if we have title & desc now
+        if ((!targetPdf.notes || targetPdf.notes === '-' || targetPdf.notes === '') && newTitle && newDescription) {
+            const snsText = await autoGenerateSnsText(newTitle, newDescription, targetPdf.id);
+            if (snsText) {
+                targetPdf.notes = snsText; // Store temporarily
+                updated = true;
+            }
+        }
+
         if (updated) {
             await updatePdf(targetPdf.id, {
                 title: newTitle,
-                description: newDescription
+                description: newDescription,
+                notes: targetPdf.notes // Includes the newly generated SNS text
             });
             successCount++;
         }

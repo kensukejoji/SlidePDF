@@ -22,7 +22,7 @@
     <meta name="twitter:description" content="VR医療教育の漫画風スライド資料をご覧いただけます">
     <meta name="twitter:image" content="https://jollygood.co.jp/slide/ogp.png">
 
-    <link rel="stylesheet" href="styles.css?v=15">
+    <link rel="stylesheet" href="styles.css?v=16">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
     <script src="https://accounts.google.com/gsi/client" async defer></script>
 </head>
@@ -141,7 +141,13 @@
                         </ul>
                     </div>
                     <div class="info-section">
-                        <h4>備考</h4>
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <h4>SNS投稿文</h4>
+                            <button id="copySnsBtn" class="action-btn" title="投稿文をコピー"
+                                style="width: auto; height: auto; padding: 4px 8px; font-size: 0.8rem; background: var(--bg-hover);">
+                                📋 コピー
+                            </button>
+                        </div>
                         <p id="pdfNotes">-</p>
                     </div>
                 </aside>
@@ -299,8 +305,14 @@
                 </div>
 
                 <div class="form-group">
-                    <label>備考</label>
-                    <textarea id="editNotes" class="form-textarea" rows="3"></textarea>
+                    <label>
+                        SNSシェア投稿文
+                        <button id="generateAiSnsBtn" type="button" class="ai-generate-btn" title="AIで自動生成">
+                            ✨ AIで生成
+                        </button>
+                    </label>
+                    <textarea id="editNotes" class="form-textarea" rows="4"
+                        placeholder="ハッシュタグ付きの魅力的なSNS投稿文をAIで自動生成できます。"></textarea>
                 </div>
 
                 <div class="form-group">
@@ -350,7 +362,7 @@
         </div>
     </footer>
 
-    <script src="app.js?v=15"></script>
+    <script src="app.js?v=16"></script>
 </body>
 
 </html>
