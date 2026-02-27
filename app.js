@@ -875,11 +875,21 @@ function getStats(pdfId) {
 // AI Summary Generation
 // ========================================
 
-async function extractPdfText(pdf, maxPages = 5) {
+async function extractPdfText(pdfObjectOrDoc, maxPages = 5) {
+    let doc = null;
+    let ownDoc = false;
+
     try {
-        const pdfPath = `ComicPDF/${pdf.filename}`;
-        const loadingTask = pdfjsLib.getDocument(pdfPath);
-        const doc = await loadingTask.promise;
+        if (pdfObjectOrDoc.filename) {
+            // It's a pdf metadata object
+            const pdfPath = `ComicPDF/${pdfObjectOrDoc.filename}`;
+            const loadingTask = pdfjsLib.getDocument(pdfPath);
+            doc = await loadingTask.promise;
+            ownDoc = true;
+        } else {
+            // It's already a pdf.js document
+            doc = pdfObjectOrDoc;
+        }
 
         let allText = '';
         const pagesToExtract = Math.min(doc.numPages, maxPages);
@@ -895,14 +905,27 @@ async function extractPdfText(pdf, maxPages = 5) {
     } catch (error) {
         console.error('Error extracting PDF text:', error);
         return '';
+    } finally {
+        if (ownDoc && doc) {
+            doc.destroy();
+        }
     }
 }
 
-async function capturePdfPageAsImage(pdf, pageNum = 1) {
+async function capturePdfPageAsImage(pdfObjectOrDoc, pageNum = 1) {
+    let doc = null;
+    let ownDoc = false;
+
     try {
-        const pdfPath = `ComicPDF/${pdf.filename}`;
-        const loadingTask = pdfjsLib.getDocument(pdfPath);
-        const doc = await loadingTask.promise;
+        if (pdfObjectOrDoc.filename) {
+            const pdfPath = `ComicPDF/${pdfObjectOrDoc.filename}`;
+            const loadingTask = pdfjsLib.getDocument(pdfPath);
+            doc = await loadingTask.promise;
+            ownDoc = true;
+        } else {
+            doc = pdfObjectOrDoc;
+        }
+
         const page = await doc.getPage(pageNum);
 
         const scale = 1.5;
@@ -924,6 +947,10 @@ async function capturePdfPageAsImage(pdf, pageNum = 1) {
     } catch (error) {
         console.error('Error capturing PDF page:', error);
         return null;
+    } finally {
+        if (ownDoc && doc) {
+            doc.destroy();
+        }
     }
 }
 
@@ -1157,8 +1184,24 @@ SNS投稿文:`;
 async function autoGenerateMissingFields(pdf, needsTitle, needsDesc, needsSns) {
     if (!needsTitle && !needsDesc && !needsSns) return {};
 
-    const imageBase64 = await capturePdfPageAsImage(pdf, 1);
-    const pdfText = await extractPdfText(pdf, 3);
+    let doc = null;
+    let imageBase64 = null;
+    let pdfText = '';
+
+    try {
+        // Load the PDF Document ONCE to save memory and HTTP requests
+        const pdfPath = `ComicPDF/${pdf.filename}`;
+        const loadingTask = pdfjsLib.getDocument(pdfPath);
+        doc = await loadingTask.promise;
+
+        // Reuse the document object
+        imageBase64 = await capturePdfPageAsImage(doc, 1);
+        pdfText = await extractPdfText(doc, 3);
+    } catch (err) {
+        console.error("Error loading PDF for AI generation:", err);
+    } finally {
+        if (doc) doc.destroy();
+    }
 
     if (!imageBase64 && !pdfText) {
         return {};
